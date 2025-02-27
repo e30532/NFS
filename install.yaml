@@ -1,0 +1,40 @@
+- hosts: all
+  gather_facts: yes
+  become: yes
+  tasks: 
+  - name: Create a directory for NFS
+    file:
+      path: /data/mynfs
+      state: directory
+
+  - name: Get /data/registry lines
+    command: "grep '/data/registry' /etc/exports"
+    register: registry_lines
+    ignore_errors: yes
+
+  - name: Add /data/mynfs lines if not present
+    lineinfile:
+      path: /etc/exports
+      line: "{{ item | replace('/data/registry', '/data/mynfs') }}"
+      insertafter: '/data/registry'
+    with_items: "{{ registry_lines.stdout_lines }}"
+    when: registry_lines.stdout != ""
+
+  - name: exportfs -ra
+    command: exportfs -ra
+
+  - name: copy nfs.yaml
+    template: src={{ item }} dest=/tmp/
+    with_items:
+      - nfs.yaml
+
+  - name: Apply NFS configuration from nfs.yaml to the 'default' namespace
+    k8s:
+      state: present
+      namespace: default
+      src: /tmp/nfs.yaml
+      kubeconfig: /root/auth/kubeconfig
+
+  - name: Patch NFS StorageClass as default
+    command: >
+      oc patch storageclass nfs -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "true"}}}' --kubeconfig /root/auth/kubeconfig
