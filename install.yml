@@ -27,7 +27,21 @@
     template: src={{ item }} dest=/tmp/
     with_items:
       - nfs.yml
+      
+  - name: install pip
+    dnf:
+      name: "{{ packages }}"
+      allowerasing: yes
+      state: latest
+    vars:
+      packages:
+        - python3-pip
 
+  - name: Install the Python Kubernetes client
+    pip:
+      name: kubernetes
+      state: present
+      executable: pip3 
   - name: Apply NFS configuration from nfs.yaml to the 'default' namespace
     k8s:
       state: present
