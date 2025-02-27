@@ -23,16 +23,16 @@
   - name: exportfs -ra
     command: exportfs -ra
 
-  - name: copy nfs.yaml
+  - name: copy nfs.yml
     template: src={{ item }} dest=/tmp/
     with_items:
-      - nfs.yaml
+      - nfs.yml
 
   - name: Apply NFS configuration from nfs.yaml to the 'default' namespace
     k8s:
       state: present
       namespace: default
-      src: /tmp/nfs.yaml
+      src: /tmp/nfs.yml
       kubeconfig: /root/auth/kubeconfig
 
   - name: Patch NFS StorageClass as default
